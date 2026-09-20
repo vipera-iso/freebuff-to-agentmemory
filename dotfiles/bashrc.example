@@ -1,0 +1,26 @@
+# ~/.bashrc example — copy to ~/.bashrc and fill in YOUR Virtual Key.
+# The real ~/.bashrc is git-ignored because it contains the Bifrost Virtual Key.
+
+# ... (your distro's default bashrc content: prompt, aliases, colors) ...
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# Bifrost Virtual Key for Codex CLI (local gateway :8080)
+# Create it in the Bifrost dashboard (http://localhost:8080) and paste below.
+export OPENAI_API_KEY="sk-bf-<REDACTED>"
+
+# bifrost — one command to start/check the Codex -> shim(8081) -> Bifrost(8080) -> Agnes stack
+#   bifrost         : start any service that is not running yet (idempotent)
+#   bifrost status  : show status          bifrost down : stop both
+#   bifrost logs    : tail logs (Ctrl+C to exit)
+bifrost() {
+  case "${1:-up}" in
+    up)     bash "$HOME/tools/bifrost-stack.sh" up ;;
+    status) bash "$HOME/tools/bifrost-stack.sh" status ;;
+    down)   bash "$HOME/tools/bifrost-stack.sh" down ;;
+    logs)   bash "$HOME/tools/bifrost-stack.sh" logs ;;
+    *) echo "usage: bifrost [up|status|down|logs]" ;;
+  esac
+}

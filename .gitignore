@@ -1,0 +1,36 @@
+# ============================================================
+# Whitelist .gitignore for the $HOME dotfiles repo.
+# Everything is ignored by default; only the paths un-ignored
+# below are tracked.
+#
+# Secret-bearing files are IGNORED on purpose (never commit):
+#   - ~/.bashrc                       (Bifrost Virtual Key)
+#   - ~/.config/bifrost/config.json   (Bifrost setup token)
+#   - hethong.md                      (ops report, contains setup token)
+# Tracked instead: redacted *.example templates in dotfiles/.
+# ============================================================
+
+/*
+
+# --- repo files ---
+!/.gitignore
+!/README.md
+
+# --- tools (real paths, no secrets) ---
+!/tools/
+/tools/*
+!/tools/bifrost-stack.sh
+!/tools/codex-ns-shim/
+/tools/codex-ns-shim/__pycache__/
+
+# --- codex config (reviewed: no credentials inside) ---
+!/.codex/
+.codex/*
+!/.codex/config.toml
+!/.codex/hooks.json
+
+# --- redacted templates for the secret-bearing files ---
+!/dotfiles/
+/dotfiles/*
+!/dotfiles/bashrc.example
+!/dotfiles/bifrost-config.example.json
