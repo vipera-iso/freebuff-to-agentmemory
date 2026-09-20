@@ -21,11 +21,13 @@ Codex CLI ──> ns-shim :8081 ──> Bifrost :8080 ──> Agnes AI
 | `.codex/hooks.json` | squeez hook registration |
 | `dotfiles/bashrc.example` | Template of `~/.bashrc` with the Virtual Key redacted |
 | `dotfiles/bifrost-config.example.json` | Template of `~/.config/bifrost/config.json` with the setup token redacted |
+| `docs/hethong.md` | Full system report (Vietnamese): architecture, incident log with fixes, token benchmark before/after enabling the TRL MCP — setup token redacted |
 
 **Not tracked on purpose (contains secrets):** `~/.bashrc` (Bifrost Virtual
-Key), `~/.config/bifrost/config.json` (Bifrost setup token) and the Vietnamese
-ops report `hethong.md` (contains the setup token). Restore them from the
-`dotfiles/*.example` templates and fill in your own values.
+Key) and `~/.config/bifrost/config.json` (Bifrost setup token). Restore them
+from the `dotfiles/*.example` templates and fill in your own values. The
+tracked `docs/hethong.md` is the redacted copy; the original lives at
+`~/hethong.md` with the real setup token and is git-ignored.
 
 ## Quick start
 

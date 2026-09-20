@@ -34,3 +34,8 @@
 /dotfiles/*
 !/dotfiles/bashrc.example
 !/dotfiles/bifrost-config.example.json
+
+# --- ops report (setup token redacted; real one stays at $HOME/hethong.md) ---
+!/docs/
+/docs/*
+!/docs/hethong.md
