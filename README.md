@@ -17,6 +17,8 @@ Codex CLI ──> ns-shim :8081 ──> Bifrost :8080 ──> Agnes AI
 | `tools/codex-ns-shim/start-shim.sh` | Shim launcher (`start/stop/status/restart`, setsid-detached so it survives the shell) |
 | `tools/codex-ns-shim/test_shim.py` | Stdlib unit tests (12 tests, no pytest needed: `python3 test_shim.py`) |
 | `tools/bifrost-stack.sh` | One-command stack manager: `up / status / down / logs` |
+| `.config/systemd/user/bifrost.service` | Boot-time autostart for the gateway (`Restart=always`) |
+| `.config/systemd/user/codex-ns-shim.service` | Boot-time autostart for the shim (after bifrost, `Restart=always`) |
 | `.codex/config.toml` | Codex CLI config (provider routing, MCP servers, token-saver settings) — reviewed, no credentials |
 | `.codex/hooks.json` | squeez hook registration |
 | `dotfiles/bashrc.example` | Template of `~/.bashrc` with the Virtual Key redacted |
@@ -31,23 +33,28 @@ tracked `docs/hethong.md` is the redacted copy; the original lives at
 
 ## Quick start
 
+The stack auto-starts at boot: `systemd` user units (`bifrost.service`,
+`codex-ns-shim.service`) with `loginctl enable-linger` — no login required,
+`Restart=always` revives crashed services automatically.
+
 ```bash
-# 1. Start the stack (idempotent — safe to run again)
-bifrost                # or: ~/tools/bifrost-stack.sh up
-
-# 2. Check
+# Check / control
 bifrost status         # both [OK] = ready
-curl http://localhost:8080/health
+bifrost down           # stop both (systemctl --user stop)
+bifrost logs           # tail both logs
 
-# 3. Use Codex
+# Manual equivalents
+systemctl --user status bifrost codex-ns-shim
+
+# Use Codex
 codex                          # interactive
 codex exec "prompt"            # non-interactive (add --skip-git-repo-check outside a git repo)
 codex -c 'model_reasoning_effort="high"' "hard task"
 ```
 
 `bifrost` is a shell function defined in `~/.bashrc` (see
-`dotfiles/bashrc.example`). Subcommands: `bifrost status`, `bifrost down`,
-`bifrost logs`.
+`dotfiles/bashrc.example`). If the systemd units are absent, the same command
+falls back to starting services manually (`setsid nohup`).
 
 ## Restore on a new machine
 

@@ -85,10 +85,15 @@ source = "https://github.com/obra/superpowers.git"
 enabled = true
 ```
 
-**Cách chạy (BƯỚC BẮT BUỘC sau mỗi lần khởi động máy — cả 2 service đều không tự start):**
+**Cách chạy (TỰ ĐỘNG từ 2026-09-20 — systemd user units + linger):**
 ```bash
-bifrost          # 1 lệnh duy nhất: tự bật Bifrost (8080) + shim (8081), idempotent
-# hoặc: bifrost status | down | logs
+bifrost          # check/điều khiển: status | down | logs (qua ~/tools/bifrost-stack.sh)
+# Cả 2 service tự start lúc bật máy (systemd --user + enable-linger),
+# tự hồi sinh khi crash (Restart=always). Không cần bật tay nữa.
+
+# Thủ công khi cần:
+systemctl --user status bifrost codex-ns-shim
+journalctl --user -u bifrost -n 20
 ```
 > Function `bifrost` nằm trong `~/.bashrc` → gọi script `~/tools/bifrost-stack.sh`.
 > Virtual Key đã tạo, `OPENAI_API_KEY` export sẵn trong `~/.bashrc` (key `sk-bf-…`).
@@ -164,7 +169,13 @@ Backup đồng bộ tại `~/.agents/skills/`.
 - **Fix:** thêm `setsid` vào `start-shim.sh` (đã sửa vĩnh viễn). Cả 2 service giờ đều phải khởi động bằng `setsid nohup`.
 - **Bài học:** sau khi khởi động lại máy, PHẢI bật lại cả Bifrost lẫn shim (xem "Cách chạy" §3) — không có service nào tự start.
 
-### 6.6. Venv TRL sai version MCP SDK → trl-retrieve chết (đã fix 2026-09-20)
+### 6.6. Service tự khởi động bằng systemd --user + linger (2026-09-20)
+- **Vấn đề:** trước đây cả 2 service phải bật tay sau mỗi lần khởi động máy.
+- **Fix:** 2 unit `bifrost.service` + `codex-ns-shim.service` trong `~/.config/systemd/user/`, `Restart=always` (shim thoát sạch bằng SIGTERM vẫn được hồi sinh — `on-failure` không đủ), `loginctl enable-linger user` để user manager chạy lúc boot mà không cần login.
+- **Bẫy đã gặp:** instance manual cũ (setsid) giữ port 8080 khiến unit systemd crash-loop exit 1 — khi chuyển sang systemd phải kill tiến trình manual trước (tìm PID qua `ss -tlnp`).
+- `bifrost-stack.sh` tự phát hiện unit có tồn tại hay không: dùng systemctl, không có thì fallback setsid nohup.
+
+### 6.7. Venv TRL sai version MCP SDK → trl-retrieve chết (đã fix 2026-09-20)
 - **Triệu chứng:** MCP server `trl-retrieve` chết ngay khi khởi động: `MCP startup failed: handshaking with MCP server failed: connection closed`. Codex fallback sang grep/thường (tốn token gấp nhiều lần).
 - **Nguyên nhân:** Venv có `mcp 2.2.0` nhưng plugin dùng FastMCP API 1.x — docstring mcp 2 xác nhận `FastMCP` đã bị xoá (`Removed in mcp 2: FastMCP is now mcp.server.mcpserver.MCPServer`). Requirements chỉ ghi `mcp>=1.0` nên 2.2.0 lọt qua.
 - **Fix:** `~/tools/trl-venv/bin/pip install "mcp>=1.16,<2"` → bản 1.30.0. Handshake OK, tools/list trả `retrieve_code` + `explain_symbol`.

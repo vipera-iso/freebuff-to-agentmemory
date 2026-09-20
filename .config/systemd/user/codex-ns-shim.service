@@ -1,0 +1,15 @@
+[Unit]
+Description=codex-ns-shim (:8081) — flatten namespace tools + strip reasoning items
+After=bifrost.service
+Wants=bifrost.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/user/tools/codex-ns-shim/shim.py
+Environment=SHIM_UPSTREAM=http://127.0.0.1:8080/openai/v1
+Restart=always
+RestartSec=2
+StandardOutput=append:/tmp/codex-ns-shim.log
+StandardError=append:/tmp/codex-ns-shim.log
+
+[Install]
+WantedBy=default.target
