@@ -24,7 +24,7 @@ bifrost_up() {
     ok "Bifrost gateway :8080 (đã chạy sẵn)"
     return 0
   fi
-  echo "..." "Đang bật Bifrost gateway :8080"
+  echo "... Đang bật Bifrost gateway :8080"
   setsid nohup bifrost > "$LOG_BIFROST" 2>&1 &
   for _ in $(seq 1 30); do
     health http://localhost:8080/health && { ok "Bifrost gateway :8080"; return 0; }

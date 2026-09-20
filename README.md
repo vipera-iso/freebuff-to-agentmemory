@@ -49,13 +49,21 @@ codex -c 'model_reasoning_effort="high"' "hard task"
 
 ## Restore on a new machine
 
+Repo: `vipera-iso/dotfiles` (private).
+
 ```bash
-git clone <this-repo> ~            # tracks files at their real paths under $HOME
+git clone https://github.com/vipera-iso/dotfiles ~            # tracks files at their real paths under $HOME
 cp dotfiles/bashrc.example ~/.bashrc                    # then paste YOUR Virtual Key
 mkdir -p ~/.config/bifrost
 cp dotfiles/bifrost-config.example.json ~/.config/bifrost/config.json   # then paste YOUR setup token
 bifrost
 ```
+
+## Token hygiene
+
+- Never paste PATs into chat or shell history. Prefer `gh auth login` or a
+  credential helper; when a one-off authenticated push is unavoidable, use an
+  inline URL and revoke the token right after.
 
 ## Shim behavior details
 
