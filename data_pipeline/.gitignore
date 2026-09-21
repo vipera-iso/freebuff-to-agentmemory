@@ -1,0 +1,24 @@
+# Dữ liệu thô + index Qdrant — có thể chứa nội dung nhạy cảm
+data/
+
+# Repos clone từ ngoài (quản lý bởi git của chúng, không track lồng nhau)
+repos/
+
+# Log setup — theo AGENTS.md phải git-ignored
+logs/
+
+# Venv Python 3.12 cho pipeline
+.venv/
+
+# Config chứa key thật (chỉ commit file *.example)
+config/codex-home/
+config/bifrost_config.json
+
+# Fixtures/outputs sinh tự động (AGENTS.md: không commit file nhị phân)
+tests/fixtures/
+tests/outputs/
+
+# Qdrant embedded lock / cache
+*.lock
+__pycache__/
+*.pyc

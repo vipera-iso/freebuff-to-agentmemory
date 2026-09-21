@@ -1,0 +1,8 @@
+{
+  "name": "pptx-tools",
+  "connection_type": "http",
+  "connection_string": "http://host.docker.internal:3001/mcp",
+  "auth_type": "none",
+  "needs_session_stickiness": true,
+  "tools_to_execute": ["*"]
+}

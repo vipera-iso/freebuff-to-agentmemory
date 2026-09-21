@@ -49,3 +49,7 @@
 !/docs/
 /docs/*
 !/docs/hethong.md
+
+# --- data pipeline skeleton (docs + modules + scripts; data/repos/logs/venv stay ignored
+#     via data_pipeline/.gitignore — raw content, cloned repos, run output, venv) ---
+!/data_pipeline/

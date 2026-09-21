@@ -1,0 +1,13 @@
+# Python dependencies cho data pipeline
+# Lưu ý: cài trong venv Python 3.12 (máy đang có 3.14 — ngoài vùng hỗ trợ của Unstructured)
+unstructured[all-docs]>=0.16.0
+llama-index>=0.12.0
+llama-index-embeddings-openai>=0.3.0
+llama-index-vector-stores-qdrant>=0.4.0
+langgraph>=0.2.0
+langchain-openai>=0.3.0
+python-pptx>=1.0.0
+qdrant-client>=1.12.0
+requests>=2.32.0
+openai>=1.50.0
+codex-relay>=0.2.0
