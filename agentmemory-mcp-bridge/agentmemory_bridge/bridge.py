@@ -9,10 +9,11 @@ agentmemory (memory_save, memory_smart_search, memory_recall, …) đi qua nguy�
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 from mcp import Client, MCPError, StdioServerParameters
 from mcp.server import Server, ServerRequestContext
@@ -47,6 +48,10 @@ class BridgeState:
     tool_count: int | None = None
     connected: bool = False
     error: str | None = None
+    # Được serve() gán vào: yêu cầu uvicorn dừng sạch để systemd restart
+    # (Restart=always) — cách hồi phục duy nhất khi upstream stdio đã chết
+    # mà tiến trình bridge còn sống.
+    request_shutdown: Callable[[], None] | None = None
 
 
 def _build_client(config: Config) -> Client:
@@ -60,6 +65,55 @@ def _build_client(config: Config) -> Client:
     return Client(params, read_timeout_seconds=config.call_timeout)
 
 
+async def _watchdog(config: Config, state: BridgeState) -> None:
+    """Giám sát upstream stdio bằng `list_tools()` làm nhịp tim.
+
+    MCP đã gỡ `ping` (2026-07-28, chỉ còn trong `mode='legacy'`), nên dùng
+    `list_tools()` — vừa là request thật qua kênh stdio, vừa cập nhật
+    `tool_count`. Sau `ping_failures` lần liên tiếp thất bại thì yêu cầu uvicorn
+    dừng sạch: tiến trình thoát, systemd (`Restart=always`) dựng lại bridge với
+    upstream mới — không còn cảnh `/health` trả `ok` trong khi upstream đã chết.
+    """
+    if config.ping_interval <= 0:
+        logger.info("watchdog tắt (AM_BRIDGE_PING_INTERVAL=0)")
+        return
+
+    failures = 0
+    while True:
+        await asyncio.sleep(config.ping_interval)
+        client = state.client
+        if client is None:
+            continue
+        try:
+            tools = await asyncio.wait_for(client.list_tools(), timeout=config.ping_timeout)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - watchdog nuốt mọi lỗi để tiếp tục
+            failures += 1
+            state.error = (
+                f"upstream không trả lời ({failures}/{config.ping_failures}): "
+                f"{type(exc).__name__}: {exc}"
+            )
+            logger.warning("watchdog: %s", state.error)
+            if failures < config.ping_failures:
+                continue
+
+            state.connected = False
+            if state.request_shutdown is None:
+                logger.error("upstream chết nhưng bridge không có request_shutdown — /health trả 503")
+                return
+            logger.error(
+                "upstream chết %d lần liên tiếp — dừng bridge để systemd restart",
+                failures,
+            )
+            state.request_shutdown()
+            return
+
+        failures = 0
+        state.error = None
+        state.tool_count = len(tools.tools)
+
+
 def _make_lifespan(config: Config, state: BridgeState):
     @asynccontextmanager
     async def lifespan(_server: Server[BridgeState]):
@@ -69,6 +123,7 @@ def _make_lifespan(config: Config, state: BridgeState):
 
             state.client = client
             state.connected = True
+            state.error = None
             if client.server_info is not None:
                 state.server_info = client.server_info.model_dump(exclude_none=True)
 
@@ -78,6 +133,10 @@ def _make_lifespan(config: Config, state: BridgeState):
             except Exception as exc:  # upstream sống nhưng tools/list lỗi
                 logger.warning("upstream tools/list thất bại: %s", exc)
 
+            watchdog = asyncio.create_task(
+                _watchdog(config, state), name="agentmemory-bridge-watchdog"
+            )
+
             logger.info(
                 "upstream sẵn sàng (%s) — %s tool(s)",
                 config.upstream_summary(),
@@ -86,6 +145,9 @@ def _make_lifespan(config: Config, state: BridgeState):
             try:
                 yield state
             finally:
+                watchdog.cancel()
+                with suppress(asyncio.CancelledError):
+                    await watchdog
                 state.connected = False
                 state.client = None
                 state.error = None
@@ -195,8 +257,12 @@ def build_server(config: Config) -> tuple[Server[BridgeState], BridgeState]:
     return server, state
 
 
-def build_app(config: Config):
-    """Trả về Starlette ASGI app (Streamable HTTP + /health)."""
+def build_app(config: Config) -> tuple[Any, BridgeState]:
+    """Trả về `(Starlette ASGI app, BridgeState)` — app gồm Streamable HTTP + /health.
+
+    Trả kèm `state` để `serve()` gán `state.request_shutdown` (watchdog dùng khi
+    upstream chết) — nếu chỉ trả app thì không có cách nào chạm tới state.
+    """
     from starlette.requests import Request
     from starlette.responses import JSONResponse
     from starlette.routing import Route
@@ -204,8 +270,15 @@ def build_app(config: Config):
     server, state = build_server(config)
 
     async def health(_request: Request) -> JSONResponse:
+        if state.connected and state.error:
+            status = "degraded"  # vẫn phục vụ được, nhưng upstream đang chập chờn
+        elif state.connected:
+            status = "ok"
+        else:
+            status = "down" if state.error else "starting"
         payload = {
-            "status": "ok" if state.connected else "starting",
+            "status": status,
+            "error": state.error,
             "upstream": config.upstream_summary(),
             "upstream_server": state.server_info,
             "tool_count": state.tool_count,
@@ -213,12 +286,13 @@ def build_app(config: Config):
         }
         return JSONResponse(payload, status_code=200 if state.connected else 503)
 
-    return server.streamable_http_app(
+    app = server.streamable_http_app(
         streamable_http_path=config.path,
         stateless_http=config.stateless,
         host=config.host,
         custom_starlette_routes=[Route("/health", health)],
     )
+    return app, state
 
 
 def serve(config: Config) -> None:
@@ -228,10 +302,18 @@ def serve(config: Config) -> None:
     )
     import uvicorn
 
-    logger.info("bridge nghe tại %s (upstream: %s)", config.mcp_url, config.upstream_summary())
-    uvicorn.run(
-        build_app(config),
+    app, state = build_app(config)
+    uv_config = uvicorn.Config(
+        app,
         host=config.host,
         port=config.port,
         log_level=config.log_level.lower(),
+        # Watchdog có thể yêu cầu dừng khi upstream chết; đừng kẹt vô hạn
+        # trên các kết nối keep-alive cũ (systemd sẽ dựng lại sau RestartSec).
+        timeout_graceful_shutdown=5,
     )
+    server = uvicorn.Server(uv_config)
+    state.request_shutdown = lambda: setattr(server, "should_exit", True)
+
+    logger.info("bridge nghe tại %s (upstream: %s)", config.mcp_url, config.upstream_summary())
+    server.run()

@@ -58,6 +58,12 @@ class Config:
 
     call_timeout: float = 120.0
 
+    # --- Watchdog (giám sát upstream stdio) ---
+    # ping_interval <= 0 → tắt watchdog.
+    ping_interval: float = 30.0
+    ping_timeout: float = 10.0
+    ping_failures: int = 3
+
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Config":
         env = os.environ if env is None else env
@@ -72,6 +78,13 @@ class Config:
 
         if env.get("AM_BRIDGE_CALL_TIMEOUT"):
             cfg.call_timeout = float(env["AM_BRIDGE_CALL_TIMEOUT"])
+
+        if env.get("AM_BRIDGE_PING_INTERVAL"):
+            cfg.ping_interval = float(env["AM_BRIDGE_PING_INTERVAL"])
+        if env.get("AM_BRIDGE_PING_TIMEOUT"):
+            cfg.ping_timeout = float(env["AM_BRIDGE_PING_TIMEOUT"])
+        if env.get("AM_BRIDGE_PING_FAILURES"):
+            cfg.ping_failures = max(1, int(env["AM_BRIDGE_PING_FAILURES"]))
 
         cfg.upstream_url = env.get("AM_UPSTREAM_URL") or None
         cfg.upstream_command = env.get("AM_UPSTREAM_COMMAND", cfg.upstream_command)

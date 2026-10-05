@@ -61,8 +61,7 @@ async def _exercise(port: int) -> None:
         assert boom.is_error, "tool lỗi phải trả is_error=True"
 
 
-def test_bridge_end_to_end() -> None:
-    port = _free_port()
+def _spawn(port: int, extra_env: dict[str, str] | None = None) -> subprocess.Popen:
     env = {
         **os.environ,
         "AM_BRIDGE_HOST": "127.0.0.1",
@@ -70,27 +69,88 @@ def test_bridge_end_to_end() -> None:
         "AM_BRIDGE_LOG_LEVEL": "warning",
         "AM_UPSTREAM_COMMAND": sys.executable,
         "AM_UPSTREAM_ARGS": str(MOCK),
+        **(extra_env or {}),
     }
-    proc = subprocess.Popen(
+    return subprocess.Popen(
         [sys.executable, "-m", "agentmemory_bridge"],
         cwd=ROOT,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
+
+
+def _stop(proc: subprocess.Popen) -> None:
+    proc.terminate()
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
+def test_bridge_end_to_end() -> None:
+    port = _free_port()
+    proc = _spawn(port)
     try:
         health = _wait_healthy(port)
         assert health["status"] == "ok"
+        assert health["error"] is None, health
         assert health["tool_count"] == 3, health
         asyncio.run(_exercise(port))
     finally:
-        proc.terminate()
+        _stop(proc)
+
+
+def test_config_watchdog_env() -> None:
+    """AM_BRIDGE_PING_* phải đọc được, kể cả giá trị 0 (tắt watchdog)."""
+    from agentmemory_bridge.config import Config
+
+    cfg = Config.from_env(
+        {
+            "AM_BRIDGE_PING_INTERVAL": "0",
+            "AM_BRIDGE_PING_TIMEOUT": "2.5",
+            "AM_BRIDGE_PING_FAILURES": "1",
+        }
+    )
+    assert cfg.ping_interval == 0.0, cfg.ping_interval
+    assert cfg.ping_timeout == 2.5, cfg.ping_timeout
+    assert cfg.ping_failures == 1, cfg.ping_failures
+
+    default = Config.from_env({})
+    assert default.ping_interval > 0 and default.ping_failures >= 1
+
+
+def test_upstream_death_makes_bridge_exit() -> None:
+    """Upstream stdio chết → watchdog phải dừng bridge (để systemd restart).
+
+    Đây là hành vi chống 'khỏe giả': trước đây /health vẫn trả ok với tool_count
+    cũ dù tiến trình con đã chết.
+    """
+    port = _free_port()
+    proc = _spawn(
+        port,
+        {
+            "AM_BRIDGE_PING_INTERVAL": "1",
+            "AM_BRIDGE_PING_TIMEOUT": "3",
+            "AM_BRIDGE_PING_FAILURES": "2",
+        },
+    )
+    try:
+        _wait_healthy(port)
+        subprocess.run(["pkill", "-f", str(MOCK)], check=False)
         try:
-            proc.wait(timeout=10)
+            out, _ = proc.communicate(timeout=30)
         except subprocess.TimeoutExpired:
-            proc.kill()
+            raise AssertionError(
+                "bridge không tự thoát sau khi upstream chết (watchdog không hoạt động)"
+            ) from None
+        assert proc.returncode is not None, out
+    finally:
+        _stop(proc)
 
 
 if __name__ == "__main__":
+    test_config_watchdog_env()
     test_bridge_end_to_end()
+    test_upstream_death_makes_bridge_exit()
     print("OK: bridge end-to-end")
