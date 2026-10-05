@@ -2,6 +2,10 @@
 # scripts/run_all_tests.sh — Chạy toàn bộ test pipeline theo TEST_PROCEDURE.md
 set -e
 
+# Chạy từ thư mục nào cũng được: tự cd về data_pipeline/ (trước đây mọi đường
+# dẫn tương đối — ./scripts/, logs/, .venv/, tests/ — chỉ đúng khi cwd đã ở đây).
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
 echo "═══════════════════════════════════════"
 echo "  CHẠY TOÀN BỘ TEST PIPELINE"
 echo "═══════════════════════════════════════"

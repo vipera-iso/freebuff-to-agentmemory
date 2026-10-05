@@ -9,8 +9,11 @@ import threading
 import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
-sys.path.insert(0, "tools/codex-ns-shim")
+# Path of the shim, independent of cwd (was: hard-coded "tools/codex-ns-shim",
+# which only worked when run from the repo root).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shim  # noqa: E402
 
 import requests  # noqa: E402
@@ -31,7 +34,7 @@ class TestFlatten(unittest.TestCase):
                 ],
             },
         ]
-        out, n_ns, n_fn = shim.flatten_tools(tools)
+        out, n_ns, n_fn, fwd = shim.flatten_tools(tools)
         self.assertEqual(n_ns, 1)
         self.assertEqual(n_fn, 2)
         self.assertEqual(len(out), 3)
@@ -42,33 +45,42 @@ class TestFlatten(unittest.TestCase):
         self.assertIn("mcp__trl-retrieve__fetch", names)
         for t in fn_tools:
             self.assertEqual(t["type"], "function")
+        # fwd_map: flat name -> (namespace, original name), for the response side.
+        self.assertEqual(fwd["mcp__trl-retrieve__search"], ("mcp__trl-retrieve__", "search"))
+        # Tools that were already flat must not enter the map.
+        self.assertNotIn("exec_command", fwd)
 
     def test_no_namespace_passthrough_unchanged_bytes(self):
         raw = json.dumps({"tools": [{"type": "function", "name": "f"}]}).encode()
-        out, rewritten = shim.rewrite_body(raw)
+        out, rewritten, fwd, rev = shim.rewrite_body(raw)
         self.assertFalse(rewritten)
         self.assertEqual(out, raw)
+        self.assertEqual((fwd, rev), ({}, {}))
 
     def test_non_json_body_passthrough(self):
-        raw, rewritten = shim.rewrite_body(b"not json")
+        raw, rewritten, fwd, rev = shim.rewrite_body(b"not json")
         self.assertFalse(rewritten)
         self.assertEqual(raw, b"not json")
+        self.assertEqual((fwd, rev), ({}, {}))
 
     def test_empty_body_passthrough(self):
-        raw, rewritten = shim.rewrite_body(b"")
+        raw, rewritten, fwd, rev = shim.rewrite_body(b"")
         self.assertFalse(rewritten)
+        self.assertEqual((fwd, rev), ({}, {}))
 
     def test_no_tools_field_passthrough(self):
         raw = json.dumps({"model": "x", "input": "hi"}).encode()
-        out, rewritten = shim.rewrite_body(raw)
+        out, rewritten, fwd, rev = shim.rewrite_body(raw)
         self.assertFalse(rewritten)
         self.assertEqual(out, raw)
+        self.assertEqual((fwd, rev), ({}, {}))
 
     def test_tools_field_not_list_passthrough(self):
         raw = json.dumps({"tools": "weird"}).encode()
-        out, rewritten = shim.rewrite_body(raw)
+        out, rewritten, fwd, rev = shim.rewrite_body(raw)
         self.assertFalse(rewritten)
         self.assertEqual(out, raw)
+        self.assertEqual((fwd, rev), ({}, {}))
 
     def test_nested_function_shape_flattened(self):
         tools = [{
@@ -81,23 +93,40 @@ class TestFlatten(unittest.TestCase):
                              "description": "d"},
             }],
         }]
-        out, n_ns, n_fn = shim.flatten_tools(tools)
+        out, n_ns, n_fn, fwd = shim.flatten_tools(tools)
         self.assertEqual((n_ns, n_fn), (1, 1))
         self.assertEqual(out[0]["type"], "function")
         self.assertEqual(out[0]["name"], "mcp__ctx7__resolve")
         self.assertEqual(out[0]["description"], "d")
+        self.assertEqual(fwd["mcp__ctx7__resolve"], ("mcp__ctx7__", "resolve"))
 
     def test_degenerate_namespace_gets_sane_default_name(self):
-        out, n_ns, n_fn = shim.flatten_tools(
+        out, n_ns, n_fn, fwd = shim.flatten_tools(
             [{"type": "namespace", "tools": [{"type": "function", "name": "t"}]}])
         self.assertEqual((n_ns, n_fn), (1, 1))
         self.assertEqual(out[0]["name"], "mcp__mcp__t")
 
     def test_flat_mcp_prefixed_tool_not_double_prefixed(self):
-        out, n_ns, n_fn = shim.flatten_tools(
+        out, n_ns, n_fn, fwd = shim.flatten_tools(
             [{"type": "namespace", "name": "mcp__srv__",
               "tools": [{"type": "function", "name": "mcp__srv__t"}]}])
         self.assertEqual(out[0]["name"], "mcp__srv__t")
+
+    def test_fwd_rev_maps_are_inverse(self):
+        """rev_map phải dựng lại đúng history: flat -> original, giữ namespace."""
+        tools = [{"type": "namespace", "name": "mcp__srv__",
+                  "tools": [{"type": "function", "name": "a"},
+                            {"type": "function", "name": "b"}]}]
+        raw = json.dumps({"tools": tools}).encode()
+        _, rewritten, fwd, rev = shim.rewrite_body(raw)
+        self.assertTrue(rewritten)
+        self.assertEqual(fwd, {
+            "mcp__srv__a": ("mcp__srv__", "a"),
+            "mcp__srv__b": ("mcp__srv__", "b"),
+        })
+        # rev = {v: k for k, v in fwd.items()} → (namespace, original) -> flat
+        self.assertEqual(rev[("mcp__srv__", "a")], "mcp__srv__a")
+        self.assertEqual(rev[("mcp__srv__", "b")], "mcp__srv__b")
 
 
 # ---------- Mock upstream + integration ----------
