@@ -24,12 +24,6 @@
 !/tools/codex-ns-shim/
 /tools/codex-ns-shim/__pycache__/
 
-# --- codex config (reviewed: no credentials inside) ---
-!/.codex/
-.codex/*
-!/.codex/config.toml
-!/.codex/hooks.json
-
 # --- systemd user units (auto-start stack at boot via linger) ---
 !/.config/
 .config/*
@@ -37,8 +31,6 @@
 .config/systemd/*
 !/.config/systemd/user/
 .config/systemd/user/*
-!/.config/systemd/user/bifrost.service
-!/.config/systemd/user/codex-ns-shim.service
 !/.config/systemd/user/pptx-mcp-bridge.service
 !/.config/systemd/user/agentmemory-mcp-bridge.service
 !/.config/systemd/user/agentmemory.service
