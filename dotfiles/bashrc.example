@@ -11,16 +11,5 @@ export NVM_DIR="$HOME/.nvm"
 # Create it in the Bifrost dashboard (http://localhost:8080) and paste below.
 export OPENAI_API_KEY="sk-bf-<REDACTED>"
 
-# bifrost — one command to start/check the Codex -> shim(8081) -> Bifrost(8080) -> Agnes stack
-#   bifrost         : start any service that is not running yet (idempotent)
-#   bifrost status  : show status          bifrost down : stop both
-#   bifrost logs    : tail logs (Ctrl+C to exit)
-bifrost() {
-  case "${1:-up}" in
-    up)     bash "$HOME/tools/bifrost-stack.sh" up ;;
-    status) bash "$HOME/tools/bifrost-stack.sh" status ;;
-    down)   bash "$HOME/tools/bifrost-stack.sh" down ;;
-    logs)   bash "$HOME/tools/bifrost-stack.sh" logs ;;
-    *) echo "usage: bifrost [up|status|down|logs]" ;;
-  esac
-}
+# bifrost — (đã ngừng dùng 10/2026: Codex CLI + Bifrost stack được tháo gỡ,
+#   tools/bifrost-stack.sh và tools/codex-ns-shim/ đã xoá khỏi repo.)

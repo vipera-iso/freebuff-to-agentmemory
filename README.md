@@ -22,7 +22,6 @@ OpenCode (opencode.json)     ┘                              │ stdio
 | `.config/systemd/user/pptx-mcp-bridge.service` | pptx-tools MCP bridge on `:3001/mcp` for `data_pipeline` |
 | `agentmemory-mcp-bridge/` | Python package implementing the bridge — schema-preserving proxy, `/health`, upstream watchdog, tests |
 | `tools/agentmemory-server.sh` | npx launcher: resolves Node from any nvm version, pins the agentmemory version |
-| `tools/bifrost-stack.sh`, `tools/codex-ns-shim/` | Local gateway stack manager and Codex `namespace` → `function` shim |
 | `data_pipeline/` | Skeleton for raw-data RAG (docs, real modules, test scripts) |
 | `docs/hethong.md` | Full system report (Vietnamese): architecture, incident log, token benchmark — setup token redacted |
 | `dotfiles/*.example` | Templates of the files that hold secrets |
@@ -89,8 +88,7 @@ cd agentmemory-mcp-bridge
 uv venv .venv && uv pip install -e .
 .venv/bin/python -m pytest -q          # bridge end-to-end + watchdog + config
 
-python3 tools/codex-ns-shim/test_shim.py
-data_pipeline/scripts/run_all_tests.sh
+data_pipeline/scripts/run_all_tests.sh # Test 1 → 11 (cần đủ .NET SDK/Docker/16GB RAM)
 ```
 
 ## Restore on a new machine

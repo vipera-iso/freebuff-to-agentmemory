@@ -94,11 +94,13 @@ codex-relay --help
 
 ## Giai đoạn 2: Cấu hình Bifrost Gateway & Codex Relay
 
-> **Quyết định kiến trúc (routing song song):** Máy đang chạy sẵn stack
-> `Codex CLI → ns-shim :8081 → Bifrost :8080` (xem `~/tools/codex-ns-shim/` và `~/.codex/config.toml`).
-> Stack đó **giữ nguyên** cho Codex CLI hằng ngày. Pipeline này thêm `codex-relay` trên
-> **port 4444** như một đường routing **song song, độc lập**, chỉ dành cho agent của pipeline —
-> không đụng vào shim, không đổi `model_provider` hiện tại trong `~/.codex/config.toml`.
+> **Quyết định kiến trúc (routing song song) — CẬP NHẬT 10/2026:** Stack
+> `Codex CLI → ns-shim :8081 → Bifrost :8080` **đã tháo gỡ**: Codex CLI không còn
+> trên máy, `tools/codex-ns-shim/` + `tools/bifrost-stack.sh` đã xoá khỏi repo và
+> unit `codex-ns-shim.service` / `bifrost.service` không còn. Vì vậy `codex-relay`
+> trên **port 4444** giờ là đường routing duy nhất cho agent của pipeline —
+> các mục bên dưới mô tả cách cấu hình riêng trong `config/codex-home/`
+> (`CODEX_HOME` cô lập), không đụng config user.
 
 ### 2.1. Cài đặt codex-relay
 

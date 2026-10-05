@@ -19,6 +19,17 @@ Dự án này thiết lập **pipeline xử lý dữ liệu thô** cho AI Agent,
 > 1. **Không dùng RAGFlow** — máy 14 GB RAM < 16 GB yêu cầu. Thay bằng **Qdrant embedded + LlamaIndex** (chi tiết trong `SETUP_PLAN.md` Giai đoạn 4).
 > 2. **Routing song song:** stack `Codex → ns-shim :8081 → Bifrost :8080` sẵn có **giữ nguyên** cho Codex CLI hằng ngày. Pipeline dùng `codex-relay :4444` riêng, chạy trong env cô lập (`CODEX_HOME=config/codex-home`) — **không sửa `~/.codex/config.toml`**.
 
+> ⚠️ **Cập nhật 10/2026 — đọc trước khi làm theo các mục 4.1/5 bên dưới:** Stack
+> `Codex CLI → ns-shim :8081 → Bifrost :8080` **đã tháo gỡ** (Codex CLI không còn
+> trên máy; `tools/codex-ns-shim/`, `tools/bifrost-stack.sh`,
+> `~/.codex/config.toml` và 2 unit `codex-ns-shim.service`/`bifrost.service` đã bị
+> gỡ). Các nhắc tới "ns-shim", "routing song song", `codex exec` hằng ngày trong
+> tài liệu này là **nhật ký của stack cũ**. Path duy nhất còn lại cho agent pipeline
+> là `codex-relay :4444` với `CODEX_HOME=config/codex-home`. Gateway Bifrost `:8080`
+> chưa được dựng lại → Test 2 của `scripts/run_all_tests.sh` và biến
+> `OPENAI_BASE_URL=http://localhost:8080/...` (mục 4.2) chưa thể chạy tới chừng
+> nào gateway được cài lại.
+
 ---
 
 ## 2. Cấu trúc thư mục

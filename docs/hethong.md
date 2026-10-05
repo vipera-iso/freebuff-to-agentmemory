@@ -2,6 +2,13 @@
 
 > Cập nhật: 2026-09-19 · Máy: Linux x86_64 (Ubuntu 26.4) · Node v24.21.0 · Python 3.14
 
+> ⚠️ **Trạng thái 10/2026:** stack mô tả bên dưới **đã ngừng hoạt động**. Codex CLI
+> không còn trên máy; `tools/codex-ns-shim/`, `tools/bifrost-stack.sh`, unit
+> `codex-ns-shim.service` + `bifrost.service` và `.codex/config.toml` đã bị gỡ.
+> Tài liệu này còn lại làm **nhật ký kiến trúc/sự cố** (log, benchmark token, các
+> fix đã ghi). Stack đang chạy hiện tại là `agentmemory` + `agentmemory-mcp-bridge`
+> — xem README ở root repo.
+
 ---
 
 ## 1. Kiến trúc tổng quan
