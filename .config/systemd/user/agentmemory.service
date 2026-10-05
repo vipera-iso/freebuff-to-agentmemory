@@ -1,0 +1,26 @@
+[Unit]
+Description=agentmemory server (REST :3111, streams :3112, viewer :3113)
+Documentation=https://github.com/rohitg00/agentmemory
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+# Launcher tự quét ~/.nvm (không hard-code version Node như trước) và ghim
+# version agentmemory — xem tools/agentmemory-server.sh.
+ExecStart=%h/tools/agentmemory-server.sh
+EnvironmentFile=-%h/.agentmemory/.env
+Restart=always
+RestartSec=5
+# Tăng dần khi crash kéo dài, tránh quay vòng mỗi 5s.
+RestartSteps=6
+RestartMaxDelaySec=120
+# Cho engine + worker thời gian shut down sạch (trước đây bị SIGKILL).
+TimeoutStopSec=20
+KillMode=mixed
+# Log vào journald (không còn /tmp/agentmemory-server.log):
+#   journalctl --user -u agentmemory -f
+
+[Install]
+WantedBy=default.target

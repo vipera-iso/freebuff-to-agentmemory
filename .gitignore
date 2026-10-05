@@ -20,6 +20,7 @@
 !/tools/
 /tools/*
 !/tools/bifrost-stack.sh
+!/tools/agentmemory-server.sh
 !/tools/codex-ns-shim/
 /tools/codex-ns-shim/__pycache__/
 
@@ -40,6 +41,7 @@
 !/.config/systemd/user/codex-ns-shim.service
 !/.config/systemd/user/pptx-mcp-bridge.service
 !/.config/systemd/user/agentmemory-mcp-bridge.service
+!/.config/systemd/user/agentmemory.service
 
 # --- redacted templates for the secret-bearing files ---
 !/dotfiles/

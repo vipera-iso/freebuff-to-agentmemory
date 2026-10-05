@@ -1,20 +1,41 @@
 [Unit]
 Description=agentmemory MCP bridge (:8765/mcp) — @agentmemory/mcp stdio → Streamable HTTP
 After=network-online.target
-Wants=network-online.target
-# Nếu agentmemory chạy như service riêng thì bật dòng dưới để bridge khởi động sau:
-# Wants=agentmemory.service
-# After=agentmemory.service
+Wants=network-online.target agentmemory.service
+After=agentmemory.service
+# Bridge chỉ lấy đủ 54/54 tool nếu backend đã lên khi upstream dò :3111.
+# Khởi động lại backend vì thế cũng phải khởi động lại bridge
+# (PartOf truyền `systemctl restart agentmemory` sang unit này).
+PartOf=agentmemory.service
+# Tắt start-rate-limit: mặc định systemd từ chối sau 5 lần start/10s, nghĩa là
+# unit rơi vào trạng thái `failed` vĩnh viễn nếu ExecStartPre fail nhanh liên tiếp
+# (đã đo: Restart=always retry thật — NRestarts=5 — rồi chết vì start-limit).
+# Ở đây retry là mục đích chứ không phải triệu chứng.
+StartLimitIntervalSec=0
 
 [Service]
+# Chờ backend trả lời trước khi spawn upstream stdio, nếu không upstream sẽ
+# khoá vào LOCAL FALLBACK (7/54 tool) cho tới lần restart kế tiếp.
+# - exit 1 (KHÔNG phải exit 0) khi hết thời gian chờ: khởi động mù là đúng cái
+#   trạng thái trên; exit 1 để `Restart=always` thử lại sau RestartSec.
+# - Vòng chờ tối đa 120s phải < TimeoutStartSec, nếu không systemd kill start
+#   job giữa chừng (mặc định chỉ 90s).
+TimeoutStartSec=150
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do curl -sf http://127.0.0.1:3111/agentmemory/health >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
 ExecStart=/home/user/agentmemory-mcp-bridge/scripts/run-bridge.sh
 Environment=AM_BRIDGE_HOST=127.0.0.1
 Environment=AM_BRIDGE_PORT=8765
 Environment=AM_BRIDGE_LOG_LEVEL=info
+# Watchdog trong bridge (mặc định 30s, 3 lần fail liên tiếp) tự dừng tiến trình
+# khi upstream stdio chết → unit này restart lại với upstream sạch.
+# Đặt AM_BRIDGE_PING_INTERVAL=0 nếu muốn tắt.
 Restart=always
 RestartSec=3
-StandardOutput=append:/tmp/agentmemory-mcp-bridge.log
-StandardError=append:/tmp/agentmemory-mcp-bridge.log
+# Tăng dần thời gian chờ khi backend chết kéo dài (3s → tối đa 60s) thay vì
+# quay vòng mỗi 3s và thiêu log.
+RestartSteps=6
+RestartMaxDelaySec=60
+# Log vào journald (không còn /tmp): journalctl --user -u agentmemory-mcp-bridge -f
 
 [Install]
 WantedBy=default.target
