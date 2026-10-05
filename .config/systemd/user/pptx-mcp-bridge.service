@@ -1,0 +1,14 @@
+[Unit]
+Description=pptx-tools MCP bridge (:3001/mcp) — stdio → Streamable HTTP
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/home/user/data_pipeline/scripts/pptx_mcp_bridge.sh
+Restart=always
+RestartSec=3
+StandardOutput=append:/tmp/pptx-mcp-bridge.log
+StandardError=append:/tmp/pptx-mcp-bridge.log
+
+[Install]
+WantedBy=default.target

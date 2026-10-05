@@ -5,6 +5,11 @@ Module ingestion: Load dữ liệu từ nhiều định dạng.
 - PPTX: pptx-tools MCP server (JSON-RPC 2.0 Streamable HTTP tại :3001/mcp),
   fallback python-pptx nếu MCP không liên lạc được (docstring `_load_pptx_local`).
 
+  LƯU Ý: upstream jongalloway/pptx-tools CHỈ hỗ trợ stdio transport. Endpoint
+  HTTP :3001/mcp do bridge `scripts/pptx_mcp_bridge.sh` (supergateway) cung cấp,
+  bọc stdio → Streamable HTTP. Tên tham số tool là camelCase (`filePath`,
+  `slideIndex`) và `slideIndex` là 0-based.
+
 Output thống nhất: list[llama_index.core.schema.Document] — đầu vào cho parsing/cleaner.
 """
 import json
@@ -138,21 +143,21 @@ class DocumentLoader:
         client.initialize()
         abs_path = os.path.abspath(file_path)
 
-        slides_info = client.call_tool("pptx_list_slides", {"file_path": abs_path})
+        slides_info = client.call_tool("pptx_list_slides", {"filePath": abs_path})
         count = self._slide_count(slides_info)
         if count <= 0:
             raise ValueError(f"Không xác định được số slide từ pptx_list_slides: {slides_info}")
 
         docs = []
-        for i in range(1, count + 1):
+        for i in range(count):  # pptx-tools dùng slideIndex 0-based
             content = client.call_tool(
-                "pptx_get_slide_content", {"file_path": abs_path, "slide_number": i}
+                "pptx_get_slide_content", {"filePath": abs_path, "slideIndex": i}
             )
             docs.append(Document(
                 text=self._slide_text(content),
                 metadata={
                     "source": os.path.basename(file_path),
-                    "slide_number": i,
+                    "slide_number": i + 1,  # pipeline dùng 1-based
                     "element_type": "PptxSlide",
                     "loader": "pptx-tools-mcp",
                     "raw": content,
@@ -162,6 +167,9 @@ class DocumentLoader:
 
     @staticmethod
     def _slide_count(info) -> int:
+        # pptx_list_slides trả về JSON array [{Index, Title, ...}, ...] (0-based Index)
+        if isinstance(info, list):
+            return len(info)
         if isinstance(info, dict):
             if isinstance(info.get("slides"), list):
                 return len(info["slides"])
@@ -183,10 +191,15 @@ class DocumentLoader:
 
         def walk(node) -> None:
             if isinstance(node, dict):
-                for key in ("text", "title", "content", "value"):
+                # pptx-tools dùng khoá viết hoa: Text, Paragraphs, Title, Notes...
+                for key in ("text", "Text", "title", "Title", "content", "value", "Paragraphs", "Notes"):
                     value = node.get(key)
                     if isinstance(value, str) and value.strip():
                         parts.append(value.strip())
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, str) and item.strip():
+                                parts.append(item.strip())
                 for value in node.values():
                     walk(value)
             elif isinstance(node, list):

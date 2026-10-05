@@ -38,6 +38,8 @@
 .config/systemd/user/*
 !/.config/systemd/user/bifrost.service
 !/.config/systemd/user/codex-ns-shim.service
+!/.config/systemd/user/pptx-mcp-bridge.service
+!/.config/systemd/user/agentmemory-mcp-bridge.service
 
 # --- redacted templates for the secret-bearing files ---
 !/dotfiles/
@@ -53,3 +55,7 @@
 # --- data pipeline skeleton (docs + modules + scripts; data/repos/logs/venv stay ignored
 #     via data_pipeline/.gitignore — raw content, cloned repos, run output, venv) ---
 !/data_pipeline/
+
+# --- agentmemory MCP bridge cho Freebuff + OpenCode (.venv/__pycache__ ignored
+#     via agentmemory-mcp-bridge/.gitignore) ---
+!/agentmemory-mcp-bridge/

@@ -1,0 +1,20 @@
+[Unit]
+Description=agentmemory MCP bridge (:8765/mcp) — @agentmemory/mcp stdio → Streamable HTTP
+After=network-online.target
+Wants=network-online.target
+# Nếu agentmemory chạy như service riêng thì bật dòng dưới để bridge khởi động sau:
+# Wants=agentmemory.service
+# After=agentmemory.service
+
+[Service]
+ExecStart=/home/user/agentmemory-mcp-bridge/scripts/run-bridge.sh
+Environment=AM_BRIDGE_HOST=127.0.0.1
+Environment=AM_BRIDGE_PORT=8765
+Environment=AM_BRIDGE_LOG_LEVEL=info
+Restart=always
+RestartSec=3
+StandardOutput=append:/tmp/agentmemory-mcp-bridge.log
+StandardError=append:/tmp/agentmemory-mcp-bridge.log
+
+[Install]
+WantedBy=default.target

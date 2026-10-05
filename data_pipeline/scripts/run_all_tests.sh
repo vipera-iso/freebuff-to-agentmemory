@@ -27,10 +27,8 @@ curl -sf http://localhost:8080/health || { echo "❌ Bifrost :8080 không phản
 echo "[TEST 3] Codex Relay (env cô lập CODEX_HOME)"
 curl -sf http://127.0.0.1:4444/v1/models > /dev/null || { echo "❌ Relay :4444 không phản hồi — khởi động codex-relay trước (TEST_PROCEDURE.md TEST 3.1)"; exit 1; }
 
-echo "[TEST 4] pptx-tools MCP"
-curl -sf -X POST http://localhost:3001/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' > /dev/null || { echo "❌ pptx-tools :3001 không phản hồi — chạy dotnet run (TEST_PROCEDURE.md TEST 4.1)"; exit 1; }
+echo "[TEST 4] pptx-tools MCP (bridge stdio→HTTP)"
+curl -sf http://localhost:3001/health > /dev/null || { echo "❌ pptx-tools :3001 không phản hồi — chạy scripts/pptx_mcp_bridge.sh (TEST_PROCEDURE.md TEST 4.1)"; exit 1; }
 
 echo "[TEST 5-11] Chạy pytest toàn bộ"
 python -m pytest tests/ -v --tb=short || exit 1

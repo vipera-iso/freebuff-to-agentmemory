@@ -136,15 +136,20 @@ CODEX_HOME=$PWD/config/codex-home codex exec "Say OK" 2>&1 | head -20
 
 ### 4.1. Kiểm tra pptx-tools server hoạt động
 
+> Upstream pptx-tools chỉ hỗ trợ **stdio** (`--stdio`), không tự mở HTTP. Cần build rồi
+> chạy bridge `scripts/pptx_mcp_bridge.sh` (supergateway) để có endpoint `:3001/mcp`.
+
 ```bash
 cd repos/pptx-tools
-dotnet run --project src/PptxTools --urls http://0.0.0.0:3001 &
-sleep 5
-curl -s http://localhost:3001/mcp/health || echo "Server responding"
+dotnet build PptxTools.slnx --configuration Release
 cd ../..
+
+./scripts/pptx_mcp_bridge.sh > logs/pptx_mcp_bridge.log 2>&1 &
+sleep 8
+curl -sf http://localhost:3001/health && echo "Server responding"
 ```
 
-**Tiêu chí PASS:** Server khởi động không lỗi build.
+**Tiêu chí PASS:** Build không lỗi và `/health` trả HTTP 200.
 
 ### 4.2. Gọi tool `pptx_list_slides` qua Bifrost MCP
 
@@ -156,7 +161,7 @@ curl -X POST http://localhost:8080/mcp \
     "method": "tools/call",
     "params": {
       "name": "pptx_list_slides",
-      "arguments": {"file_path": "tests/fixtures/sample.pptx"}
+      "arguments": {"filePath": "tests/fixtures/sample.pptx"}
     },
     "id": 1
   }' | jq .
@@ -174,7 +179,7 @@ curl -X POST http://localhost:8080/mcp \
     "method": "tools/call",
     "params": {
       "name": "pptx_get_slide_content",
-      "arguments": {"file_path": "tests/fixtures/sample.pptx", "slide_number": 1}
+      "arguments": {"filePath": "tests/fixtures/sample.pptx", "slideIndex": 1}
     },
     "id": 2
   }' | jq '.result.content'

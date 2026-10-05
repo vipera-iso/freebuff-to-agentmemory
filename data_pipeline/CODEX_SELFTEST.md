@@ -99,7 +99,7 @@ Với mỗi service dưới đây, thử ping. Nếu fail → ghi `[SKIP]` và t
   curl -sf -m 3 -X HEALTH http://127.0.0.1:8081/ && echo "OK" || echo "SKIP"
 
   echo "=== pptx-tools MCP ==="
-  curl -sf -m 3 http://localhost:3001/mcp/health && echo "OK" || echo "SKIP"
+  curl -sf -m 3 http://localhost:3001/health && echo "OK" || echo "SKIP"
 
   echo "=== Qdrant embedded (không có service — kiểm tra storage) ==="
   ls data/qdrant/ 2>/dev/null && echo "STORAGE EXISTS" || echo "SKIP (chưa index lần nào)"

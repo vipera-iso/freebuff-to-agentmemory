@@ -147,12 +147,26 @@ Thêm vào `config/bifrost_config.json`:
 }
 ```
 
-Chạy pptx-tools standalone:
+**Build pptx-tools** (cần .NET 10 SDK — xem `PREREQUISITES.md` mục 4):
 
 ```bash
 cd repos/pptx-tools
-dotnet run --project src/PptxTools --urls http://0.0.0.0:3001
+dotnet build PptxTools.slnx --configuration Release
+cd ../..
 ```
+
+**Chạy bridge stdio → Streamable HTTP (:3001/mcp):**
+
+Upstream pptx-tools **chỉ hỗ trợ stdio transport** (`WithStdioServerTransport()`, cờ `--stdio`) — nó không tự mở cổng HTTP như tài liệu cũ giả định. `scripts/pptx_mcp_bridge.sh` (supergateway) bọc stdio thành Streamable HTTP để Bifrost/pipeline kết nối:
+
+```bash
+./scripts/pptx_mcp_bridge.sh &          # hoặc: systemctl --user start pptx-mcp-bridge
+curl -s http://localhost:3001/health     # readiness check
+```
+
+> **Param tool là camelCase:** `filePath`, `slideIndex` (0-based). `pptx_list_slides`
+> trả về JSON array `[{Index, Title, LayoutName, ...}]`; `pptx_get_slide_content`
+> trả về `{SlideIndex, Shapes:[{Name, ShapeType, Text, Paragraphs, ...}]}`.
 
 ### 2.5. Kiểm tra Giai đoạn 2
 
