@@ -276,14 +276,11 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 
 
 class SlideAwareChunker(NodeParser):
-    def __init__(self, max_chars_per_slide=1500, chunk_size=512):
-        self.max_chars_per_slide = max_chars_per_slide
-        self.chunk_size = chunk_size
-        self.embed_model = OpenAIEmbedding(
-            api_base="http://localhost:8080/openai/v1",
-            api_key="dummy-key",
-            model="text-embedding-3-small"
-        )
+    # NodeParser kế thừa pydantic BaseModel: tham số phải khai báo thành field.
+    # Gán self.x = ... trong __init__ sẽ raise ValueError("object has no field").
+    # Pydantic sinh __init__ nên SlideAwareChunker(chunk_size=512) vẫn gọi được.
+    max_chars_per_slide: int = 1500
+    chunk_size: int = 512
 
     def _parse_nodes(self, nodes, show_progress=False, **kwargs):
         result = []

@@ -11,10 +11,20 @@ from llama_index.core.schema import BaseNode, Document, TextNode
 
 
 class SlideAwareChunker(NodeParser):
-    def __init__(self, max_chars_per_slide=1500, chunk_size=512, **kwargs):
-        super().__init__(**kwargs)
-        self.max_chars_per_slide = max_chars_per_slide
-        self.chunk_size = chunk_size
+    """Slide-aware chunking.
+
+    Giữ slide boundary: slide ngắn giữ nguyên 1 node, slide dài mới cắt.
+    Đơn vị chia theo ký tự (chunk_size) — đơn giản, deterministic, dễ test.
+
+    NodeParser kế thừa pydantic BaseModel, nên tham số phải khai báo thành
+    *field* (không gán ``self.x = ...`` trong ``__init__`` — pydantic từ chối
+    attribute không khai báo và ``SlideAwareChunker()`` sẽ raise ValueError).
+    Pydantic sinh ``__init__`` nên ``SlideAwareChunker(max_chars_per_slide=...)``
+    vẫn gọi được như cũ.
+    """
+
+    max_chars_per_slide: int = 1500
+    chunk_size: int = 512
 
     def _parse_nodes(
         self, nodes: Sequence[BaseNode], show_progress: bool = False, **kwargs
