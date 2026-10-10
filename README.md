@@ -25,6 +25,8 @@ OpenCode (opencode.json)     ┘                              │ stdio
 | `data_pipeline/` | Skeleton for raw-data RAG (docs, real modules, test scripts) |
 | `docs/hethong.md` | Full system report (Vietnamese): architecture, incident log, token benchmark — setup token redacted |
 | `dotfiles/*.example` | Templates of the files that hold secrets |
+| `AGENTS.md` | Standing instructions: route every non-trivial turn through the `thinking` MCP |
+| `.agents/skills/think-first/` | Freebuff skill that carries the same trigger into every session's skill list |
 
 **Not tracked on purpose (contains secrets):** `~/.config/bifrost/config.json`
 (Bifrost setup token — stack đã gỡ 10/2026) and `~/.agentmemory/.env`
@@ -89,6 +91,67 @@ LLM call nhất; tắt một trong hai rồi `systemctl --user restart agentmemo
 
 **Luân chuyển key:** sửa giá trị trong `~/.agentmemory/.env` rồi
 `systemctl --user restart agentmemory`.
+
+## Tự động gọi thinking MCP mỗi lần suy luận
+
+Freebuff **không có hooks** — MCP tool do model tự gọi, nên không có cách nào
+cưỡng chế cứng. Cách duy nhất là *chỉ dẫn always-on*, và có hai kênh:
+
+| Kênh | Được chèn khi nào | Trạng thái |
+|---|---|---|
+| `.agents/skills/think-first/SKILL.md` | `name` + `description` vào **danh sách skill** ở mọi phiên | **đã xác minh hiển thị** (danh sách skill có trong prompt phiên hiện tại) |
+| `AGENTS.md` (gốc `$HOME`) | project knowledge file, nạp lúc mở phiên | chưa xác minh được từ trong phiên — Freebuff chỉ render block này nếu server chèn; **portable** (OpenCode/Codex đọc `AGENTS.md` trực tiếp) |
+
+Cả hai trỏ về cùng một giao thức: `think` → theo scaffold → `think_submit`
+(tối đa 2 retry khi `invalid`). Chi tiết trigger và cách chọn mode nằm trong hai
+file đó.
+
+**Ràng buộc dễ vỡ:** `AGENTS.md` **phải** được un-ignore trong `.gitignore`
+(`!/AGENTS.md`). Freebuff dựng cây file bằng `TC()`, có áp ignore rules (`pX$`/`fXH`)
+— file bị ignore sẽ không bao giờ trở thành knowledge file.
+
+**Kiểm chứng (cần phiên mới — MCP + chỉ dẫn chỉ nạp lúc mở phiên):**
+
+1. Mở lại Freebuff, hỏi một câu suy luận ("vì sao bridge exit khi upstream chết?")
+2. Kỳ vọng thấy tool call `think` **trước** câu trả lời, rồi `think_submit`.
+
+**Tắt:** xoá `~/.agents/skills/think-first/` (tắt ngay phiên sau) hoặc thêm
+`disable-model-invocation: true` vào frontmatter. Thu hẹp xuống "mọi lượt, kể cả
+chào hỏi" thì bỏ mục *Skip it for* trong SKILL.md.
+
+## Thinking chất lượng: lớp LLM tuỳ chọn của thinking-mcp
+
+Server gốc chỉ **ép cấu trúc** — nó không phân biệt được một counter thật với một counter
+viết cho có. Lớp LLM tuỳ chọn trong `~/thinking-mcp/thinking_mcp/llm/` vá đúng chỗ đó và
+**advisory** — không bao giờ làm fail một submission:
+
+| Pass | Việc | Khi nào |
+|---|---|---|
+| audit | chấm `score` + liệt kê `gaps` cụ thể của submission | mỗi `think_submit` |
+| probes | thêm check đặc thù cho đề bài vào cuối scaffold | mỗi `think` |
+| verify | server tự chạy refutation (+ N sample) trong context riêng của nó | `think_verify` (`ran_by: "server"`) |
+
+Key đọc thẳng từ `~/.agentmemory/.env` (0600, không track) — không nhân bản secret:
+
+| Biến | Giá trị trên máy này |
+|---|---|
+| `THINKING_AGNES_KEYS` | pool 3 key agnes (free, không giới hạn) |
+| `THINKING_GEMINI_KEYS` | pool 12 key gemini (giới hạn request) |
+
+agnes chạy trước, gemini là fallback. Free tier giới hạn **theo từng key**, nên gặp
+429/5xx thì key hiện tại bị loại và xoay sang key kế tiếp — đó là cách 12 key gemini bị
+rate-limit trở thành một fallback dùng được. Hết sạch key → pass trả `unavailable` kèm lý
+do, submission không bị ảnh hưởng. Không có key → layer **biến mất**, hành vi y như cũ ($0).
+
+**Đo trên máy này** (agnes, free tier): probes ~7 s, audit ~9 s, refutation ~4 s (+ ~5 s
+mỗi sample). Tắt từng pass: `THINKING_LLM_PROBES=0`; tắt hết: `THINKING_LLM=0` — sửa
+`~/.agentmemory/.env` xong phải mở lại Freebuff, MCP chỉ nạp lúc mở phiên.
+
+**Giới hạn giữ nguyên sự thật:** judge là *ý kiến*, có thể chấm sai một kết luận đúng. Có
+lần nó tự mâu thuẫn (`score: 1.0` cùng `verdict: "hollow"`) nên server báo `inconsistent`
+thay vì tự chọn một con số — chọn hộ là bịa ra một phép đo. `self_consistency` cần ≥2
+sample: một mẫu không phải majority vote, nên server từ chối chạy một mẫu thay vì báo
+`agreement: 1.0` từ một ý kiến.
 
 ## Logs
 

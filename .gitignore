@@ -16,6 +16,11 @@
 !/.gitignore
 !/README.md
 
+# --- standing instructions for the agent harnesses (Freebuff knowledge file,
+#     OpenCode/Codex natively). Must stay un-ignored or the project file tree
+#     never sees it: TC() applies ignore rules when discovering knowledge files. ---
+!/AGENTS.md
+
 # --- tools (real paths, no secrets) ---
 !/tools/
 /tools/*
@@ -53,3 +58,12 @@
 # --- agentmemory MCP bridge cho Freebuff + OpenCode (.venv/__pycache__ ignored
 #     via agentmemory-mcp-bridge/.gitignore) ---
 !/agentmemory-mcp-bridge/
+
+# --- Freebuff skill: tự động route suy luận qua thinking MCP mỗi phiên.
+#     Mọi thứ khác trong .agents/ (mcp.json, 50 skill cài ngoài) vẫn bị ignore. ---
+!/.agents/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/think-first/
+!/.agents/skills/think-first/SKILL.md
