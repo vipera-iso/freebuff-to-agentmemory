@@ -7,9 +7,11 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-# Bifrost Virtual Key for Codex CLI (local gateway :8080)
-# Create it in the Bifrost dashboard (http://localhost:8080) and paste below.
-export OPENAI_API_KEY="sk-bf-<REDACTED>"
+# KHÔNG export OPENAI_API_KEY ở đây.
+# Stack Bifrost/Codex đã được gỡ (10/2026). Nếu shell export một key, nó sẽ ĐÈ
+# OPENAI_API_KEY trong ~/.agentmemory/.env (process.env thắng file .env),
+# khiến agentmemory gọi nhầm endpoint. Key agnes/gemini của agentmemory nằm ở
+# ~/.agentmemory/.env — xem dotfiles/agentmemory-env.example.
 
 # bifrost — (đã ngừng dùng 10/2026: Codex CLI + Bifrost stack được tháo gỡ,
 #   tools/bifrost-stack.sh và tools/codex-ns-shim/ đã xoá khỏi repo.)
