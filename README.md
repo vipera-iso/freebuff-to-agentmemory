@@ -26,10 +26,11 @@ OpenCode (opencode.json)     ┘                              │ stdio
 | `docs/hethong.md` | Full system report (Vietnamese): architecture, incident log, token benchmark — setup token redacted |
 | `dotfiles/*.example` | Templates of the files that hold secrets |
 
-**Not tracked on purpose (contains secrets):** `~/.bashrc` (Bifrost Virtual
-Key), `~/.config/bifrost/config.json` (Bifrost setup token) and
-`~/.agentmemory/.env` (LLM/embedding keys). Restore them from
-`dotfiles/*.example` and fill in your own values. The tracked `docs/hethong.md`
+**Not tracked on purpose (contains secrets):** `~/.config/bifrost/config.json`
+(Bifrost setup token — stack đã gỡ 10/2026) and `~/.agentmemory/.env`
+(LLM/embedding keys). Restore them from `dotfiles/*.example` and fill in your
+own values. `~/.bashrc` cũng bị ignore, nhưng **không** còn chứa key nào
+(không export `OPENAI_API_KEY` — xem `dotfiles/bashrc.example`). The tracked `docs/hethong.md`
 is the redacted copy; the original lives at `~/hethong.md`.
 
 This repo uses a **whitelist `.gitignore`**: everything is ignored, only the

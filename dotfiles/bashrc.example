@@ -1,5 +1,6 @@
-# ~/.bashrc example — copy to ~/.bashrc and fill in YOUR Virtual Key.
-# The real ~/.bashrc is git-ignored because it contains the Bifrost Virtual Key.
+# ~/.bashrc example — copy to ~/.bashrc và điền phần của riêng bạn.
+# File thật bị git-ignore (whitelist repo). Hiện KHÔNG cần key nào ở đây:
+# key agnes/gemini của agentmemory nằm ở ~/.agentmemory/.env.
 
 # ... (your distro's default bashrc content: prompt, aliases, colors) ...
 
