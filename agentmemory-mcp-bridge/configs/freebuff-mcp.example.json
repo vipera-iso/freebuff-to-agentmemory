@@ -3,6 +3,13 @@
     "agentmemory": {
       "type": "http",
       "url": "http://127.0.0.1:8765/mcp"
+    },
+    "thinking": {
+      "command": "/path/to/thinking-mcp/.venv/bin/thinking-mcp",
+      "args": [
+        "--log-level",
+        "error"
+      ]
     }
   }
 }

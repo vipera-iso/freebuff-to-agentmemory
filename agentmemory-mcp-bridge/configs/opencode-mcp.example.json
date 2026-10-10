@@ -5,6 +5,13 @@
       "type": "remote",
       "url": "http://127.0.0.1:8765/mcp",
       "enabled": true
+    },
+    "thinking": {
+      "type": "local",
+      "command": [
+        "/path/to/thinking-mcp/.venv/bin/thinking-mcp"
+      ],
+      "enabled": true
     }
   }
 }
