@@ -54,6 +54,41 @@ curl -s localhost:3111/agentmemory/health
 / `down`, and answers `503` whenever the upstream is not connected — it no
 longer claims `ok` after the stdio child has died.
 
+## Cấu hình provider cho agentmemory (key miễn phí)
+
+agentmemory đọc cấu hình từ `~/.agentmemory/.env` (quyền `0600`, **không** track).
+Template không chứa key: `dotfiles/agentmemory-env.example`.
+
+| Biến | Giá trị | Ý nghĩa |
+|---|---|---|
+| `OPENAI_API_KEY` | key agnes (`sk-…`) | bật provider LLM OpenAI-compatible |
+| `OPENAI_BASE_URL` | `https://apihub.agnes-ai.com/v1` | trỏ về agnes (base có path → dùng thẳng làm route) |
+| `OPENAI_MODEL` | `agnes-3.0-flash` | **bắt buộc** — thiếu sẽ rơi về default `gpt-5.6-luna` và 404 |
+| `FALLBACK_PROVIDERS` | `gemini` | chuỗi dự phòng khi agnes lỗi/limit (chỉ nhận: `anthropic`, `gemini`, `openrouter`, `agent-sdk`, `minimax`, `openai`) |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | key gemini (`AQ.…`) / `gemini-3.8-flash` | provider dự phòng |
+| `EMBEDDING_PROVIDER` | `local` | vector trên máy (`Xenova/all-MiniLM-L6-v2`, 384-dim) — **phải đặt tường minh**, nếu không `GEMINI_API_KEY` sẽ bị chọn làm embedding provider |
+| `AGENTMEMORY_AUTO_COMPRESS` | `true` | nén observation bằng LLM |
+| `AGENTMEMORY_REFLECT` | `true` | tự tổng hợp lesson định kỳ |
+| `CONSOLIDATION_ENABLED` | `true` | pipeline hợp nhất 4 tầng |
+| `GRAPH_EXTRACTION_ENABLED` | `true` | trích quan hệ đồ thị bằng LLM |
+| `AGENTMEMORY_INJECT_CONTEXT` | `true` | chèn ký ức vào prompt phiên sau |
+
+**Thứ tự ưu tiên env:** `~/.agentmemory/.env` < `process.env` — một `OPENAI_API_KEY`
+export trong shell sẽ **đè** file, nên `~/.bashrc` không còn export key Bifrost cũ.
+
+Xác minh:
+
+```bash
+npx -y @agentmemory/agentmemory@0.9.29 status   # Provider: ✓ llm, Embeddings: ✓
+curl -s localhost:8765/health                    # bridge: "tool_count": 54
+```
+
+**Tắt bớt nếu tốn token:** `CONSOLIDATION_ENABLED` và `AGENTMEMORY_AUTO_COMPRESS` tốn
+LLM call nhất; tắt một trong hai rồi `systemctl --user restart agentmemory`.
+
+**Luân chuyển key:** sửa giá trị trong `~/.agentmemory/.env` rồi
+`systemctl --user restart agentmemory`.
+
 ## Logs
 
 Everything goes to the journal (nothing is appended to `/tmp` anymore):
