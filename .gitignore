@@ -20,6 +20,7 @@
 !/tools/
 /tools/*
 !/tools/agentmemory-server.sh
+!/tools/inkos-studio.sh
 
 # --- systemd user units (auto-start stack at boot via linger) ---
 !/.config/
@@ -31,12 +32,14 @@
 !/.config/systemd/user/pptx-mcp-bridge.service
 !/.config/systemd/user/agentmemory-mcp-bridge.service
 !/.config/systemd/user/agentmemory.service
+!/.config/systemd/user/inkos-studio.service
 
 # --- redacted templates for the secret-bearing files ---
 !/dotfiles/
 /dotfiles/*
 !/dotfiles/bashrc.example
 !/dotfiles/bifrost-config.example.json
+!/dotfiles/agentmemory-env.example
 
 # --- ops report (setup token redacted; real one stays at $HOME/hethong.md) ---
 !/docs/

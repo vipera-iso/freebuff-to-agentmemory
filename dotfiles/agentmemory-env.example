@@ -1,0 +1,22 @@
+# agentmemory config — TEMPLATE. Copy sang ~/.agentmemory/.env rồi điền key.
+# Không có key thật trong file này.
+
+# LLM chính: agnes-3.0-flash (OpenAI-compatible, miễn phí)
+OPENAI_API_KEY=<AGNES_KEY>
+OPENAI_BASE_URL=https://apihub.agnes-ai.com/v1
+OPENAI_MODEL=agnes-3.0-flash
+
+# Dự phòng khi agnes lỗi / bị giới hạn
+FALLBACK_PROVIDERS=gemini
+GEMINI_API_KEY=<GEMINI_KEY>
+GEMINI_MODEL=gemini-3.8-flash
+
+# Embedding chạy local (không key, không rate-limit)
+EMBEDDING_PROVIDER=local
+
+# Cờ chất lượng bộ nhớ (tốn LLM call)
+AGENTMEMORY_AUTO_COMPRESS=true
+AGENTMEMORY_REFLECT=true
+CONSOLIDATION_ENABLED=true
+GRAPH_EXTRACTION_ENABLED=true
+AGENTMEMORY_INJECT_CONTEXT=true
